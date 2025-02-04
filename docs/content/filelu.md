@@ -66,13 +66,21 @@ Create a new folder named `foldername`:
 
     rclone mkdir filelu:foldername
 
-Delete a folder on FileLu (`368791` is an example folder_id):
+Delete a folder on FileLu:
 
-    rclone rmdir filelu:368791
+    rclone rmdir filelu:/folder/path/
 
-Delete a file on FileLu (`5fuoz8emuunp` is a sample file_code):
+Rename a folder on FileLu:
 
-    rclone delete filelu:5fuoz8emuunp
+    rclone backend renamefolder filelu:/folder-path/folder-name "new-folder-name"
+
+Move a folder on remote FileLu:    
+
+    rclone backend movefolder filelu:/sorce-fld-path/hello-folder/ /destication-fld-path/hello-folder/
+
+Delete a file on FileLu:
+
+    rclone delete filelu:/hello.txt
 
 List files from your FileLu account:
 
@@ -86,21 +94,29 @@ Copy a specific file to the FileLu root:
 
     rclone copy D:\\hello.txt filelu:
 
-Copy files from a local directory to a FileLu directory (directory id `366238`):
+Copy files from a local directory to a FileLu directory:
 
-    rclone copy D:/local-folder filelu:366238
+    rclone copy D:/local-folder filelu:/remote-folder/path/
+    
+Rename file on remote FileLu directory:
+
+    rclone backend rename filelu:/file-path/hello.txt "hello_new_name.txt"
 
 Download a file from FileLu into a local directory:
 
-    rclone copy filelu:5fuoz8emuunp D:/local-folder
+    rclone copy filelu:/file-path/hello.txt D:/local-folder
 
 Move files from a local directory to a FileLu directory:
 
-    rclone move D:\\local-folder filelu:366238
+    rclone move D:\\local-folder filelu:/remote-path/
+
+Move file within the remote FileLu directory:
+
+    rclone backend movefile filelu:/source-path/hello.txt /destination-path/
 
 Sync files from a local directory to a FileLu directory (directory id `366238`):
 
-    rclone sync D:/local-folder filelu:366238
+    rclone sync D:/local-folder filelu:/remote-path/
     
 Mount remote to local Linux:
 
