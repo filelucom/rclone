@@ -104,7 +104,7 @@ func NewFs(ctx context.Context, name string, root string, m configmap.Mapper) (f
         name:       name,
         root:       cleanRoot,
         opt:        *opt,
-        endpoint:   "https://filelu.com/rclone",
+        endpoint:   "https://filelu.com/testapi",
         client:     client,
         isFile:     isFile,
         targetFile: filename,
@@ -984,25 +984,26 @@ func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntrie
         entries = append(entries, fs.NewDir(fullPath, time.Now()))
     }
 
-    // Add files
-    for _, file := range result.Result.Files {
-        fullPath := path.Join(folderPath, file.Name)
-        // Parse size from string to int64
-size, err := strconv.ParseInt(strings.TrimSpace(file.Size), 10, 64)
-if err != nil {
-    fs.Debugf(f, "Error parsing file size %q: %v", file.Size, err)
-    size = 0  // Default to 0 on error
-}
-
-obj := &Object{
-    fs:      f,
-    remote:  fullPath,
-    size:    size,  // Now use the parsed size (int64)
-    modTime: time.Now(),
-}
-        entries = append(entries, obj)
+   // Add files
+for _, file := range result.Result.Files {
+    fullPath := path.Join(folderPath, file.Name)
+    
+    // Parse size from string to int64 (file.Size is a string here)
+    size, err := strconv.ParseInt(strings.TrimSpace(file.Size), 10, 64)
+    if err != nil {
+        fs.Debugf(f, "Error parsing file size %q: %v", file.Size, err)
+        size = 0  // Default to 0 on error
     }
 
+    // Creating Object with the parsed size (int64)
+    obj := &Object{
+        fs:      f,
+        remote:  fullPath,
+        size:    size,  // Use the parsed size here
+        modTime: time.Now(),
+    }
+    entries = append(entries, obj)
+}
     fs.Debugf(f, "listDirectory: Successfully retrieved directory listing for %q", folderPath)
     return entries, nil
 }
