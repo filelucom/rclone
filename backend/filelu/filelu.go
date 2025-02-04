@@ -991,7 +991,7 @@ func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntrie
     // Add files
     for _, file := range result.Result.Files {
         fullPath := path.Join(folderPath, file.Name)
-        fileSize, err := f.getFileSize(ctx, file.Size)
+        fileSize, err := f.getFileSize(ctx, file.Name)
         if err != nil {
             fs.Errorf(f, "Failed to get file size for %s: %v", fullPath, err)
             fileSize = 0 // Fallback to 0 if size can't be fetched
