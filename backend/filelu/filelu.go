@@ -996,7 +996,8 @@ for _, file := range result.Result.Files {
     fullPath := path.Join(folderPath, file.Name)
 
     // Use the helper function to parse the size from string to int64
-    size := ConvertSizeStringToInt64(file.Size)
+     // Directly assign file.Size since it is already of type int64
+    size := file.Size
 
     // Creating Object with the parsed size (int64)
     obj := &Object{
