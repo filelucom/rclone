@@ -1370,7 +1370,7 @@ func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options .
         return nil, fmt.Errorf("failed to create temp file: %w", err)
     }
     // Error handling for os.Remove
-err := os.Remove(tempPath)
+err = os.Remove(tempPath)
 if err != nil {
     fs.Logf(nil, "Failed to remove temporary file %q: %v", tempPath, err)
 }
@@ -1380,7 +1380,7 @@ if err != nil {
         return nil, fmt.Errorf("failed to open temp file: %w", err)
     }
     // Checking error for tempFile.Close
-err := tempFile.Close()
+err = tempFile.Close()
 if err != nil {
     fs.Logf(nil, "Failed to close temporary file: %v", err)
 }
