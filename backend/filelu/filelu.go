@@ -988,11 +988,12 @@ func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntrie
     for _, file := range result.Result.Files {
         fullPath := path.Join(folderPath, file.Name)
         // Parse size from string to int64
-        size, err := strconv.ParseInt(file.Size, 10, 64)
-        if err != nil {
-            fs.Debugf(f, "Error parsing file size %q: %v", file.Size, err)
-            size = 0 // Set default size to 0 if parsing fails
-        }
+        var size int64
+size, err := strconv.ParseInt(fileInfo.Size, 10, 64)
+if err != nil {
+    fs.Debugf(f, "Error parsing file size %q: %v", fileInfo.Size, err)
+    size = 0 // Set default size to 0 if parsing fails
+}
         fs.Debugf(f, "File %q size parsed: %d from string: %q", fullPath, size, file.Size)
         
         obj := &Object{
