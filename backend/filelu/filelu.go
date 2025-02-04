@@ -991,23 +991,24 @@ func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntrie
         entries = append(entries, fs.NewDir(fullPath, time.Now()))
     }
 
-   // Add files
+     // Add files
 for _, file := range result.Result.Files {
     fullPath := path.Join(folderPath, file.Name)
-
-    // Use the helper function to parse the size from string to int64
-     // Directly assign file.Size since it is already of type int64
-    size := file.Size
-
-    // Creating Object with the parsed size (int64)
-    obj := &Object{
-        fs:      f,
-        remote:  fullPath,
-        size:    size,  // Now using parsed size
-        modTime: time.Now(),
+ // Directly assign file.Size since it is already of type int64
+  sizeInt, err := strconv.ParseInt(file.Size, 10, 64)
+        if err != nil {
+            fs.Debugf(f, "Error parsing file size %q: %v", file.Size, err)
+            sizeInt = 0 // Set default size to 0 if parsing fails
+        }
+                
+        obj := &Object{
+            fs:      f,
+            remote:  fullPath,
+            size:    sizeInt,
+            modTime: time.Now(), // Consider parsing file.Uploaded if available
+        }
+        entries = append(entries, obj)
     }
-    entries = append(entries, obj)
-}
     fs.Debugf(f, "listDirectory: Successfully retrieved directory listing for %q", folderPath)
     return entries, nil
 }
