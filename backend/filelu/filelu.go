@@ -1369,15 +1369,21 @@ func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options .
     if err != nil {
         return nil, fmt.Errorf("failed to create temp file: %w", err)
     }
-    defer os.Remove(tempPath) // Clean up temp file when done
-
+    // Error handling for os.Remove
+err := os.Remove(tempPath)
+if err != nil {
+    fs.Logf(nil, "Failed to remove temporary file %q: %v", tempPath, err)
+}
     // Open the temporary file for reading
     tempFile, err := os.Open(tempPath)
     if err != nil {
         return nil, fmt.Errorf("failed to open temp file: %w", err)
     }
-    defer tempFile.Close()
-
+    // Checking error for tempFile.Close
+err := tempFile.Close()
+if err != nil {
+    fs.Logf(nil, "Failed to close temporary file: %v", err)
+}
     // Get upload server details
     uploadURL, sessID, err := f.getUploadServer(ctx)
     if err != nil {
