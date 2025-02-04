@@ -944,12 +944,9 @@ func ConvertSizeStringToInt64(sizeStr string) int64 {
     return size
 }
 
-// listDirectory fetches the directory contents using folder paths
 func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntries, error) {
-    // Ensure the folder path starts with "/"
     folderPath = "/" + strings.Trim(folderPath, "/")
 
-    // API call using folder path
     apiURL := fmt.Sprintf("%s/folder/list?folder_path=%s&key=%s",
         f.endpoint,
         url.QueryEscape(folderPath),
@@ -991,24 +988,23 @@ func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntrie
         entries = append(entries, fs.NewDir(fullPath, time.Now()))
     }
 
-     // Add files
-for _, file := range result.Result.Files {
-    fullPath := path.Join(folderPath, file.Name)
- // Directly assign file.Size since it is already of type int64
-  sizeInt, err := strconv.ParseInt(file.Size, 10, 64)
+    // Add files
+    for _, file := range result.Result.Files {
+        fullPath := path.Join(folderPath, file.Name)
+        fileSize, err := f.getFileSize(ctx, file.Size)
         if err != nil {
-            fs.Debugf(f, "Error parsing file size %q: %v", file.Size, err)
-            sizeInt = 0 // Set default size to 0 if parsing fails
+            fs.Errorf(f, "Failed to get file size for %s: %v", fullPath, err)
+            fileSize = 0 // Fallback to 0 if size can't be fetched
         }
-                
-        obj := &Object{
+
+        entries = append(entries, &Object{
             fs:      f,
             remote:  fullPath,
-            size:    sizeInt,
-            modTime: time.Now(), // Consider parsing file.Uploaded if available
-        }
-        entries = append(entries, obj)
+            size:    fileSize,
+            modTime: time.Now(),
+        })
     }
+
     fs.Debugf(f, "listDirectory: Successfully retrieved directory listing for %q", folderPath)
     return entries, nil
 }
@@ -1057,11 +1053,13 @@ func (f *Fs) getFileSize(ctx context.Context, filePath string) (int64, error) {
         return 0, fmt.Errorf("error fetching file info: %s", result.Msg)
     }
 
-    // Use the helper function to parse the size from string to int64
-    size := ConvertSizeStringToInt64(result.Result[0].Size)
+	// Convert size from string to int64
+	fileSize, err := strconv.ParseInt(result.Result[0].Size, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse file size: %w", err)
+	}
 
-    fs.Debugf(f, "getFileSize: Got size %d for file %q", size, filePath)
-    return size, nil  // Return the parsed size (int64)
+	return fileSize, nil
 }
 // getFolderID resolves and returns the folder ID for a given directory name or path
 func (f *Fs) getFolderID(ctx context.Context, dir string) (int, error) {
