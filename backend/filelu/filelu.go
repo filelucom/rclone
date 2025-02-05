@@ -320,10 +320,6 @@ func (f *Fs) DeleteFile(ctx context.Context, filePath string) error {
     return nil
 }
 
-
-
-
-
 // Rename a file using file path
 func (f *Fs) renameFile(ctx context.Context, filePath, newName string) error {
     // Ensure filePath starts with a forward slash
@@ -525,7 +521,6 @@ func (f *Fs) Command(ctx context.Context, name string, args []string, opt map[st
     }
 }
 
-
 // moveFolderToDestination moves a folder to a different location within FileLu
 func (f *Fs) moveFolderToDestination(ctx context.Context, folderPath string, destFolderPath string) error {
     // Ensure paths start with forward slashes
@@ -575,7 +570,6 @@ func (f *Fs) moveFolderToDestination(ctx context.Context, folderPath string, des
     fs.Infof(f, "Successfully moved folder from %s to %s", folderPath, destFolderPath)
     return nil
 }
-
 
 // moveFileToDestination moves a file to a different folder using file paths
 func (f *Fs) moveFileToDestination(ctx context.Context, filePath string, destinationFolderPath string) error {
@@ -871,72 +865,7 @@ func ConvertSizeStringToInt64(sizeStr string) int64 {
     }
     return size
 }
-
-func (f *Fs) listDirectory(ctx context.Context, folderPath string) (fs.DirEntries, error) {
-    folderPath = "/" + strings.Trim(folderPath, "/")
-
-    apiURL := fmt.Sprintf("%s/folder/list?folder_path=%s&key=%s",
-        f.endpoint,
-        url.QueryEscape(folderPath),
-        url.QueryEscape(f.opt.RcloneKey),
-    )
-
-    fs.Debugf(f, "listDirectory: Fetching files and folders from %s", apiURL)
-
-    req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create request: %w", err)
-    }
-
-    resp, err := f.client.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("failed to fetch directory listing: %w", err)
-    }
-    defer func() {
-        if err := resp.Body.Close(); err != nil {
-            fs.Fatalf(nil, "Failed to close response body: %v", err)
-        }
-    }()
-
-    var result api.FolderListResponse
-    err = json.NewDecoder(resp.Body).Decode(&result)
-    if err != nil {
-        return nil, fmt.Errorf("error decoding response: %w", err)
-    }
-
-    if result.Status != 200 {
-        return nil, fmt.Errorf("error: %s", result.Msg)
-    }
-
-    entries := fs.DirEntries{}
-
-    // Add folders
-    for _, folder := range result.Result.Folders {
-        fullPath := path.Join(folderPath, folder.Name)
-        entries = append(entries, fs.NewDir(fullPath, time.Now()))
-    }
-
-    // Add files
-    for _, file := range result.Result.Files {
-        fullPath := path.Join(folderPath, file.Name)
-        fileSize, err := f.getFileSize(ctx, file.Name)
-        if err != nil {
-            fs.Errorf(f, "Failed to get file size for %s: %v", fullPath, err)
-            fileSize = 0 // Fallback to 0 if size can't be fetched
-        }
-
-        entries = append(entries, &Object{
-            fs:      f,
-            remote:  fullPath,
-            size:    fileSize,
-            modTime: time.Now(),
-        })
-    }
-
-    fs.Debugf(f, "listDirectory: Successfully retrieved directory listing for %q", folderPath)
-    return entries, nil
-}
-
+// getFileSize to get the file size of objects on the remote
 func (f *Fs) getFileSize(ctx context.Context, filePath string) (int64, error) {
     // Ensure filePath starts with a forward slash
     filePath = "/" + strings.Trim(filePath, "/")
@@ -1122,8 +1051,6 @@ func (f *Fs) getDirectLink(ctx context.Context, filePath string) (string, int64,
     return result.Result.URL, result.Result.Size, nil
 }
 
-
-
 // NewObject creates a new Object for the given remote path
 func (f *Fs) NewObject(ctx context.Context, remote string) (fs.Object, error) {
     fs.Debugf(f, "NewObject: called with remote=%q", remote)
@@ -1216,8 +1143,6 @@ func (f *Fs) NewObject(ctx context.Context, remote string) (fs.Object, error) {
         modTime: time.Now(), // Consider parsing upload time if available in API response
     }, nil
 }
-
-
 
 // Helper function to handle duplicate files
 //
@@ -1661,28 +1586,6 @@ func (f *Fs) MoveTo(ctx context.Context, src fs.Object, remote string) (fs.Objec
     }, nil
 }
 
-func (f *Fs) uploadFileWithFolder(ctx context.Context, uploadURL, sessionID, fileName string, fileContent io.Reader, destinationPath string) (string, error) {
-    // Step 1: Upload the file to root directory
-    fileCode, err := f.uploadFile(ctx, uploadURL, sessionID, fileName, fileContent)
-    if err != nil {
-        return "", fmt.Errorf("failed to upload file: %w", err)
-    }
-
-    // Step 2: Move the file to the specified folder if a destination is provided
-    if destinationPath != "" {
-        // Construct the source file path (in root) and destination folder path
-        sourceFilePath := "/" + fileName
-        destinationFolderPath := "/" + strings.Trim(destinationPath, "/")
-
-        err = f.moveFileToFolder(ctx, sourceFilePath, destinationFolderPath)
-        if err != nil {
-            return "", fmt.Errorf("failed to move file to destination folder: %w", err)
-        }
-    }
-
-    return fileCode, nil
-}
-
 // MoveToLocal moves the file or folder to the local file system.
 // It implements the fs.Fs interface and performs the move operation locally.
 func (f *Fs) MoveToLocal(ctx context.Context, remote string, localPath string) error {
@@ -1925,15 +1828,6 @@ func (o *Object) Open(ctx context.Context, options ...fs.OpenOption) (io.ReadClo
     }
 
     return resp.Body, nil
-}
-
-// extractFileName helper function to extract filename from URL
-func extractFileName(urlStr string) string {
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		return ""
-	}
-	return path.Base(u.Path)
 }
 
 // Update updates the object with new data
@@ -2248,8 +2142,7 @@ func ComputeMD5(filePath string) (string, error) {
     return base64.RawStdEncoding.EncodeToString(hash[:]), nil
 }
 
-
-
+// uploadFile to upload objects from local to remote
 func (f *Fs) uploadFile(ctx context.Context, uploadURL, sessionID, fileName string, fileContent io.Reader) (string, error) {
     // Create temporary file and get its path
     tempPath, err := createTempFileFromReader(fileContent)
