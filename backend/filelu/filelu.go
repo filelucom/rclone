@@ -1428,7 +1428,10 @@ func createTempFileFromReader(in io.Reader) (string, error) {
     if err != nil {
         return "", fmt.Errorf("failed to create temp file: %w", err)
     }
-    defer tempFile.Close()
+    err = tempFile.Close()
+if err != nil {
+    fs.Logf(nil, "Failed to close temporary file: %v", err)
+}
 
     // Copy the data to the temp file
     _, err = io.Copy(tempFile, in)
@@ -1643,15 +1646,18 @@ func (f *Fs) MoveTo(ctx context.Context, src fs.Object, remote string) (fs.Objec
         if err != nil {
             return nil, fmt.Errorf("failed to open source file: %w", err)
         }
-        defer reader.Close()
+        if err := reader.Close(); err != nil {
+    fs.Logf(nil, "Failed to close reader: %v", err)
+}
 
         // Create destination file
         dest, err := os.Create(remote)
         if err != nil {
             return nil, fmt.Errorf("failed to create destination file: %w", err)
         }
-        defer dest.Close()
-
+        if err := dest.Close(); err != nil {
+    fs.Logf(nil, "Failed to close destination file: %v", err)
+}
         // Copy the content
         _, err = io.Copy(dest, reader)
         if err != nil {
@@ -1672,8 +1678,9 @@ func (f *Fs) MoveTo(ctx context.Context, src fs.Object, remote string) (fs.Objec
     if err != nil {
         return nil, fmt.Errorf("failed to open source object: %w", err)
     }
-    defer reader.Close()
-
+    if err := reader.Close(); err != nil {
+    fs.Logf(nil, "Failed to close reader: %v", err)
+}
     // Get upload server details
     uploadURL, sessID, err := f.getUploadServer(ctx)
     if err != nil {
@@ -2000,15 +2007,19 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
     if err != nil {
         return fmt.Errorf("failed to create temp file: %w", err)
     }
-    defer os.Remove(tempPath) // Clean up temp file when done
+    if err := os.Remove(tempPath); err != nil {
+    fs.Logf(nil, "Failed to remove file %q: %v", tempPath, err)
+}
 
     // Open the temporary file for reading
     tempFile, err := os.Open(tempPath)
     if err != nil {
         return fmt.Errorf("failed to open temp file: %w", err)
     }
-    defer tempFile.Close()
-
+    err = tempFile.Close()
+if err != nil {
+    fs.Logf(nil, "Failed to close temporary file: %v", err)
+}
     // Get upload server details
     uploadURL, sessID, err := o.fs.getUploadServer(ctx)
     if err != nil {
@@ -2252,7 +2263,9 @@ func ComputeMD5(filePath string) (string, error) {
     if err != nil {
         return "", fmt.Errorf("failed to open file: %w", err)
     }
-    defer file.Close()
+    if err := file.Close(); err != nil {
+    fs.Logf(nil, "Failed to close file: %v", err)
+}
 
     const partSize = 1024
     firstPart := make([]byte, partSize)
@@ -2305,7 +2318,9 @@ func (f *Fs) uploadFile(ctx context.Context, uploadURL, sessionID, fileName stri
     if err != nil {
         return "", fmt.Errorf("failed to create temp file: %w", err)
     }
-    defer os.Remove(tempPath) // Clean up temp file when done
+    if err := os.Remove(tempPath); err != nil {
+    fs.Logf(nil, "Failed to remove file %q: %v", tempPath, err)
+}
 
     // Compute the MD5 hash of the file
     hash, err := ComputeMD5(tempPath)
@@ -2343,7 +2358,9 @@ func (f *Fs) uploadFile(ctx context.Context, uploadURL, sessionID, fileName stri
     if err != nil {
         return "", fmt.Errorf("failed to open temp file for upload: %w", err)
     }
-    defer file.Close()
+    if err := file.Close(); err != nil {
+    fs.Logf(nil, "Failed to close file: %v", err)
+}
 
     // Prepare multipart form data
     var body bytes.Buffer
