@@ -1352,21 +1352,29 @@ if err != nil {
 
 // createTempFileFromReader writes the content of the 'in' reader into a temporary file
 func createTempFileFromReader(in io.Reader) (string, error) {
+    // Create a temporary file
     tempFile, err := os.CreateTemp("", "upload-*.tmp")
     if err != nil {
         return "", fmt.Errorf("failed to create temp file: %w", err)
     }
-    err = tempFile.Close()
-if err != nil {
-    fs.Logf(nil, "Failed to close temporary file: %v", err)
-}
+
+    // Defer the closing of the temp file to ensure it gets closed after copying
+    defer func() {
+        err = tempFile.Close()
+        if err != nil {
+            fs.Logf(nil, "Failed to close temporary file: %v", err)
+        }
+    }()
 
     // Copy the data to the temp file
     _, err = io.Copy(tempFile, in)
     if err != nil {
-       if err := os.Remove(tempFile); err != nil {
-    fs.Logf(nil, "Failed to remove file %q: %v", tempFile, err)
-}
+        // Attempt to remove the file if copy operation fails
+        removeErr := os.Remove(tempFile.Name())
+        if removeErr != nil {
+            fs.Logf(nil, "Failed to remove temp file %q: %v", tempFile.Name(), removeErr)
+        }
+
         return "", fmt.Errorf("failed to copy data to temp file: %w", err)
     }
 
