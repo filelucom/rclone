@@ -1364,8 +1364,8 @@ if err != nil {
     // Copy the data to the temp file
     _, err = io.Copy(tempFile, in)
     if err != nil {
-       if err := os.Remove(tempPath); err != nil {
-    fs.Logf(nil, "Failed to remove file %q: %v", tempPath, err)
+       if err := os.Remove(tempFile); err != nil {
+    fs.Logf(nil, "Failed to remove file %q: %v", tempFile, err)
 }
         return "", fmt.Errorf("failed to copy data to temp file: %w", err)
     }
