@@ -113,31 +113,6 @@ func NewFs(ctx context.Context, name string, root string, m configmap.Mapper) (f
     fs.Debugf(nil, "NewFs: Created filesystem with root path %q, isFile=%v, targetFile=%q", f.root, isFile, filename)
     return f, nil
 }
-
-
-// isNumeric checks if a string contains only numeric characters
-func isNumeric(s string) bool {
-	_, err := strconv.Atoi(s)
-	return err == nil
-}
-
-// Simplified parseFolderID function to handle direct folder ID
-func parseFolderID(root string) (folderID, parsedRoot string) {
-	// Check if root is purely numeric (direct folder ID)
-	if isNumeric(root) {
-		return root, "" // If it's numeric, use it as folder ID directly
-	}
-
-	// Check if root contains the format `remote:folderID`
-	parts := strings.SplitN(root, ":", 2)
-	if len(parts) == 2 && isNumeric(parts[1]) {
-		return parts[1], ""
-	}
-
-	// Default: No folder ID found
-	return "", root
-}
-
 // isFileCode checks if a string looks like a file code
 func isFileCode(s string) bool {
 	if len(s) != 12 {
@@ -239,39 +214,6 @@ func (f *Fs) resolveFolderPath(ctx context.Context, path string) (int, error) {
 
 	return currentID, nil
 }
-
-func (f *Fs) parseOrResolveFolderID(ctx context.Context, dir string) (int, error) {
-	dir = strings.TrimSpace(dir)
-
-	// Check if `dir` is empty, implying the root directory
-	if dir == "" {
-		if folderID, err := strconv.Atoi(f.folderID); err == nil {
-			return folderID, nil // Use the root folder ID initialized
-		}
-		return 0, fmt.Errorf("invalid root folder ID")
-	}
-
-	// Check if dir is a valid numeric folder ID
-	if folderID, err := strconv.Atoi(dir); err == nil {
-		return folderID, nil
-	}
-
-	// Extract folder ID from "(ID)" format, if applicable
-	if strings.HasPrefix(dir, "(") {
-		end := strings.Index(dir, ")")
-		if end != -1 {
-			idStr := dir[1:end]
-			if id, err := strconv.Atoi(idStr); err == nil {
-				return id, nil
-			}
-		}
-	}
-
-	// Attempt to resolve full folder path to an ID
-	return f.resolveFolderPath(ctx, dir)
-}
-
-// File: filelu.go
 
 // GetAccountInfo fetches the account information including storage usage
 func (f *Fs) GetAccountInfo(ctx context.Context) (string, string, error) {
@@ -430,20 +372,6 @@ func (f *Fs) renameFile(ctx context.Context, filePath, newName string) error {
     return nil
 }
 
-// Extract file code from remote path
-func extractFileCode(remote string) (string, error) {
-    if strings.HasPrefix(remote, "(") {
-        end := strings.Index(remote, ")")
-        if end != -1 {
-            code := strings.TrimSpace(remote[1:end])
-            if isFileCode(code) {
-                return code, nil
-            }
-        }
-    }
-    return "", fmt.Errorf("no valid file code found in remote path: %s", remote)
-}
-
 // renameFolder handles folder renaming using folder paths
 func (f *Fs) renameFolder(ctx context.Context, folderPath string, newName string) error {
     // Ensure the folder path starts with a forward slash
@@ -492,7 +420,7 @@ func (f *Fs) renameFolder(ctx context.Context, folderPath string, newName string
     return nil
 }
 
-// Modify the Command method to handle file and folder rename
+// Command method to handle file and folder rename
 func (f *Fs) Command(ctx context.Context, name string, args []string, opt map[string]string) (interface{}, error) {
     switch name {
     case "rename":
@@ -1436,7 +1364,9 @@ if err != nil {
     // Copy the data to the temp file
     _, err = io.Copy(tempFile, in)
     if err != nil {
-        os.Remove(tempFile.Name()) // Clean up the temp file
+       if err := os.Remove(tempPath); err != nil {
+    fs.Logf(nil, "Failed to remove file %q: %v", tempPath, err)
+}
         return "", fmt.Errorf("failed to copy data to temp file: %w", err)
     }
 
