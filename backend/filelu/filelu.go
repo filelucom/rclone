@@ -104,7 +104,7 @@ func NewFs(ctx context.Context, name string, root string, m configmap.Mapper) (f
         name:       name,
         root:       cleanRoot,
         opt:        *opt,
-        endpoint:   "https://filelu.com/testapi",
+        endpoint:   "https://filelu.com/rclone",
         client:     client,
         isFile:     isFile,
         targetFile: filename,
